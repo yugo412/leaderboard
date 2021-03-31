@@ -2,7 +2,7 @@
 
 namespace App\Jobs\Activity;
 
-use App\Facades\Strava;
+use App\Contracts\Workout;
 use App\Models\Athlete;
 use App\Models\ChannelActivity;
 use Illuminate\Bus\Queueable;
@@ -19,6 +19,11 @@ class SyncStravaJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
+     * @var Workout
+     */
+    private $workout;
+
+    /**
      * @var string
      */
     private $athleteId;
@@ -28,8 +33,9 @@ class SyncStravaJob implements ShouldQueue
      *
      * @return void
      */
-    public function __construct(string $athleteId)
+    public function __construct(Workout $workout, string $athleteId)
     {
+        $this->workout = $workout;
         $this->athleteId = $athleteId;
     }
 
@@ -41,17 +47,23 @@ class SyncStravaJob implements ShouldQueue
     public function handle()
     {
         try {
-            $credential = Athlete::where('source', 'strava')
+            $credential = Athlete::where('source', $this->workout->getChannel())
                 ->where('athlete_id', $this->athleteId)
                 ->firstOrFail();
 
             $finished = false;
             $page = 1;
+
             do {
-                $activities = Strava::setToken($credential->token)->activities($page);
+                $activities = $this->workout
+                    ->setToken($credential->token)
+                    ->activities();
 
                 if (!empty($activities['message'])) {
-                    Log::error($activities['message'], ['USER.ID' => $credential->user_id, 'channel' => 'strava']);
+                    Log::error($activities['message'], [
+                        'USER.ID' => $credential->user_id,
+                        'channel' => $this->workout->getChannel(),
+                    ]);
                     
                     break;
                 }
@@ -63,7 +75,7 @@ class SyncStravaJob implements ShouldQueue
 
                     foreach ($activities as $activity) {
                         $channelActivity = ChannelActivity::firstOrNew([
-                            'channel' => 'strava',
+                            'channel' => $this->workout->getChannel(),
                             'athlete_id' => data_get($activity, 'athlete.id'),
                             'activity_id' => data_get($activity, 'id'),
                         ]);

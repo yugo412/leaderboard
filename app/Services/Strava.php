@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Contracts\Workout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class Strava
+class Strava implements Workout
 {
     private $token;
 
@@ -25,6 +26,11 @@ class Strava
         }
 
         $this->host = rtrim(config('services.strava.host'), '/');
+    }
+
+    public function getChannel(): string
+    {
+        return 'strava';
     }
 
     public function setToken(?string $token): self
