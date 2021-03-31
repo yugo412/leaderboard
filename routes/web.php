@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\Auth\AthleteController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
@@ -22,6 +23,10 @@ Route::get('/', function () {
 
 Route::get('/login/{driver}', [AthleteController::class, 'login'])->name('athlete.login');
 Route::get('/authenticated/{driver}', [AthleteController::class, 'callback'])->name('athlete.callback');
+
+Route::get('/activity', [ActivityController::class, 'index'])->name('activity');
+Route::get('/activity/sync/{channel}', [ActivityController::class, 'sync'])->name('activity.sync');
+
 Route::get('/profile', [UserController::class, 'profile'])->name('user.profile');
 
 Route::get('/dashboard', function () {
