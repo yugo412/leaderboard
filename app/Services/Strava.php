@@ -14,20 +14,20 @@ class Strava
 
     public function __construct()
     {
-        $this->token = session('strava.token.'. Auth::id());
+        // set token automatically is exists in session
+        $sessionKey = sprintf(config('strava.token_key'), Auth::id());
+        if (session()->has($sessionKey)) {
+            $this->token = session($sessionKey);
+        }
 
         if (env('APP_ENV') === 'local' && !empty(env('STRAVA_CLIENT_TOKEN')) && empty($this->token)) {
             $this->token = env('STRAVA_CLIENT_TOKEN');
         }
 
-        if (empty($this->token)) {
-            Log::error(sprintf('Token for user %s is not set.', Auth::id()));
-        }
-
         $this->host = rtrim(config('services.strava.host'), '/');
     }
 
-    public function setToken(string $token): self
+    public function setToken(?string $token): self
     {
         $this->token = $token;
 
@@ -48,10 +48,10 @@ class Strava
         return $response->json();
     }
 
-    public function activities()
+    public function activities($page = 1)
     {
         $response = Http::withToken($this->token)
-            ->get($this->host.'/athlete/activities');
+            ->get($this->host.'/athlete/activities?per_page=50&page='.$page);
 
         return $response->json();
     }
